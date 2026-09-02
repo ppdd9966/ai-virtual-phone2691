@@ -638,7 +638,11 @@ function GameIframe({
       ref={iframeRef}
       title={title}
       className="game-hub-frame"
-      sandbox={allowExternalControl ? "allow-scripts allow-same-origin" : "allow-scripts"}
+      sandbox={
+        allowExternalControl
+          ? "allow-scripts allow-same-origin allow-downloads allow-modals"
+          : "allow-scripts allow-downloads"
+      }
       allow="autoplay"
       onLoad={syncHostedSafeArea}
       srcDoc={srcDoc}
