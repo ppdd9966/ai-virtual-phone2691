@@ -53,6 +53,30 @@ export async function downloadFile(blob: Blob, filename: string, options: Downlo
         throw new Error("当前浏览器没有成功打开系统分享，请在 Safari 中重试，或导出轻量备份后再试。");
     }
 
+    // 1. 尝试 Web Share API（PWA/移动端最可靠的路径，用户可选择「保存到文件」）
+    if (!options.nativeShareOnly && isAndroidBrowser()) {
+        const file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
+        const canShare = typeof navigator !== "undefined"
+            && typeof navigator.share === "function"
+            && typeof navigator.canShare === "function"
+            && navigator.canShare({ files: [file] });
+        if (canShare) {
+            try {
+                await navigator.share({ files: [file] });
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                return;
+            } catch (err) {
+                // 用户主动关闭分享面板 → 静默返回，不抛错（与 iOS 一致）
+                if (err instanceof DOMException && err.name === "AbortError") {
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    return;
+                }
+                // 其他失败：继续走 anchor 下载兜底
+            }
+        }
+    }
+
+    // 2. anchor 下载兜底（桌面浏览器 / iOS / Web Share 不可用时）
     anchorDownload();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
